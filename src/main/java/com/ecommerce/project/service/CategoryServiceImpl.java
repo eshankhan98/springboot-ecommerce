@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,10 +27,14 @@ public class CategoryServiceImpl implements CategoryService{
     private ModelMapper modelMapper;
 
     @Override
-    public CategoryResponse getAllCategories(Integer pageNumber,Integer pageSize) {
-        Pageable pageDetails = PageRequest.of(pageNumber, pageSize);
+    public CategoryResponse getAllCategories(Integer pageNumber,Integer pageSize, String sortBy, String sortOrder) {
+        Sort sortBYAndOrder = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortBYAndOrder);
         Page<Category> categoryPage= categoryRepository.findAll(pageDetails);
-        List<Category> categories = categoryRepository.findAll();
+
+        List<Category> categories =categoryPage.getContent();
         if(categories.isEmpty())
             throw new APIException("No category created till now.");
         List<CategoryDTO> categoryDTOS = categories.stream()
@@ -37,6 +42,11 @@ public class CategoryServiceImpl implements CategoryService{
                 .toList();
         CategoryResponse categoryResponse = new CategoryResponse();
         categoryResponse.setContent(categoryDTOS);
+        categoryResponse.setPageNumber(categoryPage.getNumber());
+        categoryResponse.setPageSize(categoryPage.getSize());
+        categoryResponse.setTotalElements(categoryPage.getTotalElements());
+        categoryResponse.setTotalPages(categoryPage.getTotalPages());
+        categoryResponse.setLastPage(categoryPage.isLast());
         return categoryResponse;
     }
 
